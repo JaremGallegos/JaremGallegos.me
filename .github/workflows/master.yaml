@@ -1,0 +1,51 @@
+name: Desplegar Pagina Web
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Stup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install mdBook
+        run: |
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.37/mdbook-v0.4.37-x86_64-unknown-linux-gnu.tar.gz | tar -xz
+          sudo mv mdbook /usr/local/bin/
+      - name: Build Astro
+        run: |
+          cd landing
+          npm install
+          npm run build
+      - name: Merge Static Side
+        run: |
+          mkdir site
+          cp -r landing/dist/* site/
+          mkdir -p site/docs
+          cp -r research/book/* site/docs/
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub
+        id: deployment
+        uses: actions/deploy-pages@v4
