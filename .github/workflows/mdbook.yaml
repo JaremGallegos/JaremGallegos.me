@@ -2,7 +2,7 @@ name: Deploy mdBook site to Pages
 
 on:
   push:
-    branches: [master]
+    branches: [$default_branches]
   workflow_dispatch:
 
 permissions:
