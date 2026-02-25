@@ -16,6 +16,7 @@ concurrency:
 
 env:
   BUILD_PATH_ASTRO: "./landing"
+  BUILD_PATH_MDBOOK: "./research"
   MDBOOK_VERSION: 0.4.36
 
 jobs:
@@ -76,12 +77,13 @@ jobs:
 
       - name: Build MdBook
         run: mdbook build
+        working-directory: ${{ env.BUILD_PATH_MDBOOK }}
 
       - name: Merge Static Files
         run: |
           mkdir -p public
-          cp -r dist/* public/
-          cp -r book/* public/
+          cp -r ${{ env.BUILD_PATH_ASTRO }}/dist/* public/
+          cp -r ${{ env.BUILD_PATH_MDBOOK }}/book/* public/research
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

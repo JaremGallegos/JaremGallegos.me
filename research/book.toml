@@ -2,3 +2,5 @@
 title = "PROYECTOS"
 authors = ["JaremGallegos"]
 language = "en"
+multilingual = true
+src = "src"
