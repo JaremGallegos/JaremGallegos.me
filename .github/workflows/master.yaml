@@ -1,4 +1,5 @@
-name: Desplegar Pagina Web
+name: Despliegue de Pagina Web
+
 on:
   push:
     branches: [master]
@@ -9,35 +10,83 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  BUILD_PATH: "."
+  MDBOOK_VERSION: 0.4.36
+
 jobs:
   build:
+    name: Building
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Stup Node
+
+      - name: Detect package manager
+        id: detect-package-manager
+        run: |
+          if [ -f "yarn.lock" ]; then
+            echo "manager=yarn" >> $GITHUB_OUTPUT
+            echo "command=install" >> $GITHUB_OUTPUT
+            echo "runner=yarn" >> $GITHUB_OUTPUT
+            echo "lockfile=yarn.lock" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ -f "package.json" ]; then
+            echo "manager=npm" >> $GITHUB_OUTPUT
+            echo "command=ci" >> $GITHUB_OUTPUT
+            echo "runner=npx --no-install" >> $GITHUB_OUTPUT
+            echo "lockfile=package-lock.json" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "Unable to determine package manager"
+            exit 1
+          fi
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install mdBook
+          cache: ${{ steps.detect-package-manager.outputs.manager }}
+          cache-dependency-path: ${{ env.BUILD_PATH }}/${{ steps.detect-package-manager.outputs.lockfile }}
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Install MdBook
         run: |
-          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.37/mdbook-v0.4.37-x86_64-unknown-linux-gnu.tar.gz | tar -xz
-          sudo mv mdbook /usr/local/bin/
-      - name: Build Astro
+          curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf -y | sh
+          rustup update
+          cargo install --version ${{ env.MDBOOK_VERSION }} mdbook
+
+      - name: Install Dependencies Astro
+        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+        working-directory: ${{ env.BUILD_PATH }}
+
+      - name: Build Path with Astro
         run: |
-          cd landing
-          npm install
-          npm run build
-      - name: Merge Static Side
+          ${{ steps.detect-package-manager.outputs.runner }} astro build \
+            --site "${{ steps.pages.outputs.origin }}" \
+            --base "${{ steps.pages.outputs.base_path }}"
+        working-directory: ${{ env.BUILD_PATH }}
+
+      - name: Build MdBook
+        run: mdbook build
+
+      - name: Merge Static Files
         run: |
-          mkdir site
-          cp -r landing/dist/* site/
-          mkdir -p site/docs
-          cp -r research/book/* site/docs/
-      - name: Upload Artifact
+          mkdir -p public
+          cp -r dist/* public/
+          cp -r book/* public/
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
+          path: public/
 
   deploy:
     needs: build
@@ -46,6 +95,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub
+      - name: Deploy to Github Pages
         id: deployment
         uses: actions/deploy-pages@v4
