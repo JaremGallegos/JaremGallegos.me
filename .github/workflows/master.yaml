@@ -82,6 +82,7 @@ jobs:
       - name: Merge Static Files
         run: |
           mkdir -p public
+          mkidr -p public/research
           cp -r ${{ env.BUILD_PATH_ASTRO }}/dist/* public/
           cp -r ${{ env.BUILD_PATH_MDBOOK }}/book/* public/research
 
