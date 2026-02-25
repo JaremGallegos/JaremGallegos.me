@@ -1,1 +1,0 @@
-# josephgallegos.me
