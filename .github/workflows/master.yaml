@@ -47,14 +47,12 @@ jobs:
           fi
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: jjs98/pnpm-install-action@v6
         with:
-          node-version: "20"
-          cache: pnpm
-          cache-dependency-path: ${{ env.BUILD_PATH_ASTRO }}/pnpm-lock.yaml
+          directory: ${{ env.BUILD_PATH_ASTRO }}/src/client
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4.2.0
 
       - name: Setup Pages
         id: pages
