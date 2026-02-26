@@ -92,6 +92,7 @@ jobs:
           path: public/
 
   deploy:
+    name: Deploying
     needs: build
     runs-on: ubuntu-latest
     environment:
